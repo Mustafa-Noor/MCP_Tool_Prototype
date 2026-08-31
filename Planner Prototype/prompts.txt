@@ -1,0 +1,2 @@
+create a vp for customer acme, then flash firmware onto it, run a simulation on it, and also check what extensions are installed
+create a vp for customer globex named test-vp2 and stop a vp

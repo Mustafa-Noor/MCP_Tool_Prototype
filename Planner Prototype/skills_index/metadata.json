@@ -1,0 +1,1048 @@
+[
+  {
+    "id": "create_vp",
+    "name": "Create VP",
+    "category": "vp_lifecycle",
+    "description": "Creates a new virtual platform (VP) instance \u2014 a simulated hardware target such as an ARM or RISC-V dev board \u2014 for a customer or project inside the Theia IDE. Use this when the user wants to provision, set up, initialize, spin up, or create a new virtual platform, target, or board from a template.",
+    "tags": [
+      "provisioning",
+      "virtual-platform",
+      "setup",
+      "create",
+      "initialize",
+      "theia"
+    ],
+    "steps": [
+      "validate_config",
+      "provision_resources",
+      "register_platform"
+    ],
+    "input_schema": {
+      "customer_id": "string",
+      "name": "string",
+      "description": "string",
+      "platform_type": "string",
+      "template_id": "string",
+      "cores": "number",
+      "memory_mb": "number"
+    },
+    "output_schema": {
+      "platform_id": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "delete_vp",
+    "name": "Delete VP",
+    "category": "vp_lifecycle",
+    "description": "Deletes and deprovisions an existing virtual platform, releasing its allocated compute and any associated snapshots. Use this when the user wants to remove, tear down, decommission, or get rid of a virtual platform or target they no longer need.",
+    "tags": [
+      "vp_lifecycle",
+      "delete",
+      "deprovision",
+      "cleanup"
+    ],
+    "steps": [
+      "locate_vp",
+      "deprovision_resources",
+      "deregister_platform"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "platform_id": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "start_vp",
+    "name": "Start VP",
+    "category": "vp_lifecycle",
+    "description": "Boots an existing virtual platform that is currently stopped, bringing the simulated target back online. Use this when the user wants to power on, boot, start, or resume a virtual platform.",
+    "tags": [
+      "vp_lifecycle",
+      "start",
+      "boot",
+      "power-on"
+    ],
+    "steps": [
+      "locate_vp",
+      "boot_platform",
+      "health_check"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "platform_id": "string",
+      "status": "string",
+      "boot_time_ms": "number"
+    }
+  },
+  {
+    "id": "stop_vp",
+    "name": "Stop VP",
+    "category": "vp_lifecycle",
+    "description": "Gracefully shuts down a running virtual platform and releases its compute allocation without deleting it. Use this when the user wants to power off, halt, pause, or stop a virtual platform.",
+    "tags": [
+      "vp_lifecycle",
+      "stop",
+      "shutdown",
+      "power-off"
+    ],
+    "steps": [
+      "locate_vp",
+      "graceful_shutdown",
+      "deallocate_compute"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "platform_id": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "snapshot_vp",
+    "name": "Snapshot VP",
+    "category": "vp_lifecycle",
+    "description": "Captures a point-in-time snapshot of a virtual platform's full state (memory, registers, firmware) so it can be restored later. Use this when the user wants to save, checkpoint, or snapshot the current state of a virtual platform before making risky changes.",
+    "tags": [
+      "vp_lifecycle",
+      "snapshot",
+      "checkpoint",
+      "backup"
+    ],
+    "steps": [
+      "locate_vp",
+      "freeze_state",
+      "write_snapshot"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "snapshot_id": "string",
+      "vp_id": "string",
+      "size_mb": "number"
+    }
+  },
+  {
+    "id": "restore_vp_snapshot",
+    "name": "Restore VP Snapshot",
+    "category": "vp_lifecycle",
+    "description": "Restores a virtual platform to a previously captured snapshot and resumes it. Use this when the user wants to roll back, revert, or restore a virtual platform to an earlier saved state.",
+    "tags": [
+      "vp_lifecycle",
+      "restore",
+      "rollback",
+      "snapshot"
+    ],
+    "steps": [
+      "locate_snapshot",
+      "validate_snapshot",
+      "apply_snapshot",
+      "resume_platform"
+    ],
+    "input_schema": {
+      "snapshot_id": "string"
+    },
+    "output_schema": {
+      "platform_id": "string",
+      "status": "string",
+      "restored_from": "string"
+    }
+  },
+  {
+    "id": "list_vp_templates",
+    "name": "List VP Templates",
+    "category": "vp_lifecycle",
+    "description": "Lists the available virtual platform templates (board/SoC definitions) that can be used to create new VPs, optionally filtered by architecture. Use this when the user wants to browse, discover, or see what target templates or board types are available.",
+    "tags": [
+      "vp_lifecycle",
+      "templates",
+      "catalog",
+      "read-only",
+      "discover"
+    ],
+    "steps": [
+      "query_template_catalog"
+    ],
+    "input_schema": {
+      "arch": "string"
+    },
+    "output_schema": {
+      "templates": "array",
+      "count": "number"
+    }
+  },
+  {
+    "id": "attach_debugger",
+    "name": "Attach Debugger",
+    "category": "build_debug",
+    "description": "Opens a debug port on a running virtual platform and establishes a GDB-remote debug session for it, for use with the Theia debug adapter. Use this when the user wants to debug, attach a debugger to, set breakpoints on, or step through code running on a virtual platform.",
+    "tags": [
+      "debug",
+      "gdb",
+      "theia",
+      "vp_lifecycle",
+      "breakpoints"
+    ],
+    "steps": [
+      "locate_vp",
+      "open_debug_port",
+      "establish_session"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "session_id": "string",
+      "vp_id": "string",
+      "port": "number",
+      "protocol": "string"
+    }
+  },
+  {
+    "id": "flash_firmware",
+    "name": "Flash Firmware",
+    "category": "vp_lifecycle",
+    "description": "Loads and verifies a compiled firmware image (.bin, .elf, or .hex) onto a virtual platform. Use this when the user wants to flash, load, program, or deploy firmware or a binary onto a virtual platform or target.",
+    "tags": [
+      "firmware",
+      "flash",
+      "deploy",
+      "vp_lifecycle",
+      "binary"
+    ],
+    "steps": [
+      "locate_vp",
+      "validate_image",
+      "load_image",
+      "verify_checksum"
+    ],
+    "input_schema": {
+      "vp_id": "string",
+      "image_path": "string"
+    },
+    "output_schema": {
+      "vp_id": "string",
+      "checksum": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "run_simulation",
+    "name": "Run Simulation",
+    "category": "vp_lifecycle",
+    "description": "Runs a running virtual platform for a given duration and collects an execution trace (cycles, instructions retired). Use this when the user wants to simulate, execute, run, or exercise firmware on a virtual platform for a period of time.",
+    "tags": [
+      "simulation",
+      "trace",
+      "execute",
+      "vp_lifecycle"
+    ],
+    "steps": [
+      "locate_vp",
+      "configure_run",
+      "execute_cycles",
+      "collect_trace"
+    ],
+    "input_schema": {
+      "vp_id": "string",
+      "duration_ms": "number"
+    },
+    "output_schema": {
+      "vp_id": "string",
+      "trace": "object"
+    }
+  },
+  {
+    "id": "clone_vp",
+    "name": "Clone VP",
+    "category": "vp_lifecycle",
+    "description": "Creates a duplicate of an existing virtual platform, copying its vSoC configuration and firmware into a new independent instance. Use this when the user wants to clone, duplicate, or copy a virtual platform to spin up a second identical target.",
+    "tags": [
+      "vp_lifecycle",
+      "clone",
+      "duplicate",
+      "copy"
+    ],
+    "steps": [
+      "locate_vp",
+      "duplicate_state",
+      "track_job"
+    ],
+    "input_schema": {
+      "vp_id": "string",
+      "customer_id": "string"
+    },
+    "output_schema": {
+      "platform_id": "string",
+      "cloned_from": "string",
+      "job_id": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "get_vsoc_definition",
+    "name": "Get vSoC Definition",
+    "category": "vp_lifecycle",
+    "description": "Retrieves the vSoC (virtual System-on-Chip) definition of a virtual platform, describing its CPUs, memory, and peripherals. Use this when the user wants to inspect, view, or read the hardware definition backing a virtual platform.",
+    "tags": [
+      "vsoc",
+      "definition",
+      "read-only",
+      "vp_lifecycle"
+    ],
+    "steps": [
+      "locate_vp",
+      "read_vsoc_definition"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "vp_id": "string",
+      "vsoc_definition": "object"
+    }
+  },
+  {
+    "id": "update_vsoc_definition",
+    "name": "Update vSoC Definition",
+    "category": "vp_lifecycle",
+    "description": "Applies changes to the vSoC (virtual System-on-Chip) definition of a virtual platform, such as its CPU count, memory size, or peripherals. Use this when the user wants to modify, reconfigure, or change the hardware definition of a virtual platform.",
+    "tags": [
+      "vsoc",
+      "definition",
+      "configure",
+      "vp_lifecycle"
+    ],
+    "steps": [
+      "locate_vp",
+      "apply_vsoc_changes",
+      "save_vsoc_definition"
+    ],
+    "input_schema": {
+      "vp_id": "string",
+      "changes": "object"
+    },
+    "output_schema": {
+      "vp_id": "string",
+      "vsoc_definition": "object",
+      "status": "string"
+    }
+  },
+  {
+    "id": "validate_vsoc_definition",
+    "name": "Validate vSoC Definition",
+    "category": "vp_lifecycle",
+    "description": "Validates the vSoC (virtual System-on-Chip) definition of a virtual platform against schema rules and reports any configuration errors. Use this when the user wants to check, validate, or verify a virtual platform's hardware definition before booting it.",
+    "tags": [
+      "vsoc",
+      "definition",
+      "validate",
+      "vp_lifecycle",
+      "read-only"
+    ],
+    "steps": [
+      "locate_vp",
+      "validate_schema",
+      "report_result"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "vp_id": "string",
+      "valid": "boolean",
+      "errors": "array"
+    }
+  },
+  {
+    "id": "get_vp_power",
+    "name": "Get VP Power State",
+    "category": "vp_lifecycle",
+    "description": "Reads the current power state (ON/OFF) of a virtual platform without changing it. Use this when the user wants to check whether a virtual platform is powered on or off.",
+    "tags": [
+      "vp_lifecycle",
+      "power",
+      "status",
+      "read-only"
+    ],
+    "steps": [
+      "locate_vp",
+      "read_power_state"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "vp_id": "string",
+      "power_state": "string"
+    }
+  },
+  {
+    "id": "update_vp_network",
+    "name": "Update VP Network",
+    "category": "vp_lifecycle",
+    "description": "Updates the network configuration (mode: nat, bridged, or host-only) of a virtual platform. Use this when the user wants to change, configure, or set networking for a virtual platform.",
+    "tags": [
+      "vp_lifecycle",
+      "network",
+      "configure"
+    ],
+    "steps": [
+      "locate_vp",
+      "apply_network_config",
+      "restart_network_adapter"
+    ],
+    "input_schema": {
+      "vp_id": "string",
+      "mode": "string"
+    },
+    "output_schema": {
+      "vp_id": "string",
+      "network": "object",
+      "status": "string"
+    }
+  },
+  {
+    "id": "download_console_logs",
+    "name": "Download Console Logs",
+    "category": "diagnostics",
+    "description": "Packages and returns a download link for the raw console log file of a virtual platform. Use this when the user wants to download, export, or retrieve the raw console output of a virtual platform.",
+    "tags": [
+      "logs",
+      "console",
+      "download",
+      "vp_lifecycle"
+    ],
+    "steps": [
+      "locate_vp",
+      "package_console_log"
+    ],
+    "input_schema": {
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "vp_id": "string",
+      "download_url": "string"
+    }
+  },
+  {
+    "id": "create_workspace",
+    "name": "Create Workspace",
+    "category": "theia_workspace",
+    "description": "Creates a new Theia IDE workspace scaffolded from a project template (blank, C/C++ embedded, or Python) and installs its default extensions. Use this when the user wants to create, start, or scaffold a new project, workspace, or repository in the IDE.",
+    "tags": [
+      "theia",
+      "workspace",
+      "scaffold",
+      "create",
+      "project"
+    ],
+    "steps": [
+      "allocate_workspace",
+      "scaffold_project",
+      "install_default_extensions"
+    ],
+    "input_schema": {
+      "name": "string",
+      "description": "string",
+      "template": "string"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "status": "string",
+      "files": "array"
+    }
+  },
+  {
+    "id": "open_workspace",
+    "name": "Open Workspace",
+    "category": "theia_workspace",
+    "description": "Opens an existing Theia IDE workspace, mounts its filesystem, and activates its installed extensions. Use this when the user wants to open, load, switch to, or resume working in an existing workspace or project.",
+    "tags": [
+      "theia",
+      "workspace",
+      "open",
+      "load"
+    ],
+    "steps": [
+      "locate_workspace",
+      "mount_filesystem",
+      "activate_extensions"
+    ],
+    "input_schema": {
+      "workspace_id": "string"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "files": "array",
+      "extensions": "array"
+    }
+  },
+  {
+    "id": "install_extension",
+    "name": "Install Extension",
+    "category": "theia_workspace",
+    "description": "Resolves, downloads, and activates a Theia IDE extension (such as C/C++ tools, Python tools, the debug adapter, git integration, or the virtual platform console) into a workspace. Use this when the user wants to install, add, or enable an IDE extension or plugin.",
+    "tags": [
+      "theia",
+      "extension",
+      "plugin",
+      "install"
+    ],
+    "steps": [
+      "resolve_extension",
+      "download_extension",
+      "activate_extension"
+    ],
+    "input_schema": {
+      "workspace_id": "string",
+      "extension_id": "string"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "extension_id": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "list_extensions",
+    "name": "List Extensions",
+    "category": "theia_workspace",
+    "description": "Lists all Theia IDE extensions currently installed in the environment. Use this when the user wants to see, list, or check what extensions or plugins are installed.",
+    "tags": [
+      "theia",
+      "extension",
+      "plugin",
+      "list",
+      "read-only"
+    ],
+    "steps": [
+      "query_installed_extensions"
+    ],
+    "input_schema": {},
+    "output_schema": {
+      "extensions": "array",
+      "count": "number"
+    }
+  },
+  {
+    "id": "uninstall_extension",
+    "name": "Uninstall Extension",
+    "category": "theia_workspace",
+    "description": "Uninstalls a Theia IDE extension by its extension id, removing it from the environment and from any workspace that has it enabled. Use this when the user wants to uninstall, remove, or disable an IDE extension or plugin.",
+    "tags": [
+      "theia",
+      "extension",
+      "plugin",
+      "uninstall",
+      "remove"
+    ],
+    "steps": [
+      "locate_extension",
+      "remove_extension"
+    ],
+    "input_schema": {
+      "extension_id": "string"
+    },
+    "output_schema": {
+      "extension_id": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "create_file",
+    "name": "Create File",
+    "category": "theia_workspace",
+    "description": "Creates a new file with optional initial content inside a Theia workspace. Use this when the user wants to add, create, or scaffold a brand-new file that doesn't exist yet.",
+    "tags": [
+      "theia",
+      "file",
+      "create",
+      "workspace"
+    ],
+    "steps": [
+      "allocate_file",
+      "write_content"
+    ],
+    "input_schema": {
+      "workspace_id": "string",
+      "file_path": "string",
+      "content": "string"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "file_path": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "update_file",
+    "name": "Update File",
+    "category": "theia_workspace",
+    "description": "Updates, edits, patches, or writes new values into an existing file within a Theia workspace. Use this when the user wants to change, modify, set, or update specific content within a file that already exists.",
+    "tags": [
+      "theia",
+      "file",
+      "update",
+      "edit",
+      "patch",
+      "write"
+    ],
+    "steps": [
+      "locate_file",
+      "apply_patch",
+      "validate_file",
+      "save_file"
+    ],
+    "input_schema": {
+      "workspace_id": "string",
+      "file_path": "string",
+      "content": "string",
+      "changes": "object"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "file_path": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "delete_file",
+    "name": "Delete File",
+    "category": "theia_workspace",
+    "description": "Deletes an existing file from a Theia workspace. Use this when the user wants to remove, delete, or get rid of a file.",
+    "tags": [
+      "theia",
+      "file",
+      "delete",
+      "remove"
+    ],
+    "steps": [
+      "locate_file",
+      "remove_file"
+    ],
+    "input_schema": {
+      "workspace_id": "string",
+      "file_path": "string"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "file_path": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "search_workspace",
+    "name": "Search Workspace",
+    "category": "theia_workspace",
+    "description": "Searches across all files in a Theia workspace for a text query and returns matching file paths and lines, ranked by relevance. Use this when the user wants to find, search, grep, or locate a string, symbol, or piece of code across a workspace.",
+    "tags": [
+      "theia",
+      "search",
+      "grep",
+      "find",
+      "read-only"
+    ],
+    "steps": [
+      "index_workspace",
+      "run_query",
+      "rank_results"
+    ],
+    "input_schema": {
+      "workspace_id": "string",
+      "query": "string"
+    },
+    "output_schema": {
+      "query": "string",
+      "matches": "array",
+      "count": "number"
+    }
+  },
+  {
+    "id": "build_project",
+    "name": "Build Project",
+    "category": "build_debug",
+    "description": "Resolves the toolchain, compiles source files, and links a binary artifact for a Theia workspace. Use this when the user wants to build, compile, or make a project.",
+    "tags": [
+      "build",
+      "compile",
+      "toolchain",
+      "theia"
+    ],
+    "steps": [
+      "resolve_toolchain",
+      "compile_sources",
+      "link_binary"
+    ],
+    "input_schema": {
+      "workspace_id": "string"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "artifact": "string",
+      "size_kb": "number",
+      "warnings": "number",
+      "status": "string"
+    }
+  },
+  {
+    "id": "run_tests",
+    "name": "Run Tests",
+    "category": "build_debug",
+    "description": "Discovers and executes test files within a Theia workspace and collects pass/fail results. Use this when the user wants to run, execute, or check tests for a project.",
+    "tags": [
+      "test",
+      "run_tests",
+      "ci",
+      "theia"
+    ],
+    "steps": [
+      "discover_tests",
+      "execute_tests",
+      "collect_results"
+    ],
+    "input_schema": {
+      "workspace_id": "string"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "tests_found": "number",
+      "passed": "number",
+      "failed": "number"
+    }
+  },
+  {
+    "id": "git_commit",
+    "name": "Git Commit",
+    "category": "source_control",
+    "description": "Stages all changed files in a Theia workspace and creates a git commit with the given message. Use this when the user wants to commit, save, or check in their changes to version control.",
+    "tags": [
+      "git",
+      "commit",
+      "source_control",
+      "version-control"
+    ],
+    "steps": [
+      "stage_changes",
+      "create_commit",
+      "update_history"
+    ],
+    "input_schema": {
+      "workspace_id": "string",
+      "message": "string"
+    },
+    "output_schema": {
+      "workspace_id": "string",
+      "commit_hash": "string",
+      "files_changed": "number",
+      "message": "string"
+    }
+  },
+  {
+    "id": "list_jobs",
+    "name": "List Jobs",
+    "category": "operations",
+    "description": "Lists background jobs tracked by the platform (such as VP creation, cloning, or firmware flashes), optionally filtered by status. Use this when the user wants to see, list, or check the status of background or async operations.",
+    "tags": [
+      "jobs",
+      "operations",
+      "read-only",
+      "async"
+    ],
+    "steps": [
+      "query_jobs"
+    ],
+    "input_schema": {
+      "status": "string"
+    },
+    "output_schema": {
+      "jobs": "array",
+      "count": "number"
+    }
+  },
+  {
+    "id": "get_job",
+    "name": "Get Job",
+    "category": "operations",
+    "description": "Retrieves the details and status of a single background job by its id. Use this when the user wants to check the status or result of a specific job or async operation.",
+    "tags": [
+      "jobs",
+      "operations",
+      "read-only",
+      "async"
+    ],
+    "steps": [
+      "locate_job"
+    ],
+    "input_schema": {
+      "job_id": "string"
+    },
+    "output_schema": {
+      "job_id": "string",
+      "operation": "string",
+      "target_id": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "download_bug_report",
+    "name": "Download Bug Report",
+    "category": "operations",
+    "description": "Collects platform diagnostics (virtual platforms, workspaces, jobs) and packages them into a downloadable bug report archive. Use this when the user wants to file a bug, gather diagnostics, or produce a support bundle.",
+    "tags": [
+      "bug-report",
+      "diagnostics",
+      "support",
+      "export"
+    ],
+    "steps": [
+      "collect_diagnostics",
+      "package_bundle",
+      "write_archive"
+    ],
+    "input_schema": {},
+    "output_schema": {
+      "download_url": "string",
+      "included": "object"
+    }
+  },
+  {
+    "id": "add_license_server",
+    "name": "Add License Server",
+    "category": "licensing",
+    "description": "Registers a new license server (host and port) with the platform. Use this when the user wants to add, register, or connect a license server.",
+    "tags": [
+      "license",
+      "licensing",
+      "server",
+      "configure"
+    ],
+    "steps": [
+      "validate_server",
+      "register_server"
+    ],
+    "input_schema": {
+      "server": "string",
+      "port": "number"
+    },
+    "output_schema": {
+      "server": "string",
+      "port": "number",
+      "status": "string"
+    }
+  },
+  {
+    "id": "list_licenses",
+    "name": "List Licenses",
+    "category": "licensing",
+    "description": "Lists all currently registered license servers and their connection status. Use this when the user wants to see, list, or check configured license servers.",
+    "tags": [
+      "license",
+      "licensing",
+      "read-only"
+    ],
+    "steps": [
+      "query_license_servers"
+    ],
+    "input_schema": {},
+    "output_schema": {
+      "servers": "array",
+      "count": "number"
+    }
+  },
+  {
+    "id": "add_env_variable",
+    "name": "Add Environment Variable",
+    "category": "settings",
+    "description": "Adds a new environment variable to the platform's settings. Fails if the variable name already exists. Use this when the user wants to add, set, or define a new environment variable.",
+    "tags": [
+      "settings",
+      "environment-variable",
+      "configure"
+    ],
+    "steps": [
+      "validate_variable",
+      "store_variable"
+    ],
+    "input_schema": {
+      "name": "string",
+      "value": "string"
+    },
+    "output_schema": {
+      "name": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "list_env_variables",
+    "name": "List Environment Variables",
+    "category": "settings",
+    "description": "Lists all environment variables currently configured on the platform. Use this when the user wants to see, list, or check configured environment variables.",
+    "tags": [
+      "settings",
+      "environment-variable",
+      "read-only"
+    ],
+    "steps": [
+      "query_variables"
+    ],
+    "input_schema": {},
+    "output_schema": {
+      "variables": "object",
+      "count": "number"
+    }
+  },
+  {
+    "id": "health_check_ping",
+    "name": "Health Check Ping",
+    "category": "operations",
+    "description": "Pings the platform backend to confirm it is reachable and responsive. Use this when the user wants to check if the server, backend, or service is up and reachable.",
+    "tags": [
+      "health-check",
+      "ping",
+      "monitoring",
+      "read-only"
+    ],
+    "steps": [
+      "ping_server"
+    ],
+    "input_schema": {},
+    "output_schema": {
+      "status": "string",
+      "timestamp": "string"
+    }
+  },
+  {
+    "id": "get_version",
+    "name": "Get Version",
+    "category": "operations",
+    "description": "Returns the product name and version of the running platform. Use this when the user wants to know the product version or build being used.",
+    "tags": [
+      "version",
+      "product-info",
+      "read-only"
+    ],
+    "steps": [
+      "read_version"
+    ],
+    "input_schema": {},
+    "output_schema": {
+      "product": "string",
+      "version": "string"
+    }
+  },
+  {
+    "id": "analyze_logs_pipeline",
+    "name": "Analyze Logs Pipeline",
+    "category": "diagnostics",
+    "description": "Runs a deterministic multi-step pipeline over system, application, or virtual-platform console logs to discover, extract, clean, and summarize issues, errors, warnings, or anomalies. Use this when the user wants to investigate problems, debug an incident, find issues, or understand what went wrong from log data.",
+    "tags": [
+      "logs",
+      "diagnostics",
+      "analysis",
+      "debug",
+      "issues",
+      "errors"
+    ],
+    "steps": [
+      "discover_logs",
+      "extract_entries",
+      "llm_clean",
+      "final_check",
+      "fuse_payload"
+    ],
+    "input_schema": {
+      "vp_id": "string",
+      "log_source": "string",
+      "time_range": "string"
+    },
+    "output_schema": {
+      "issues": "array",
+      "summary": "string"
+    }
+  },
+  {
+    "id": "restart_service",
+    "name": "Restart Service",
+    "category": "operations",
+    "description": "Restarts a running service or application component, optionally scoped to a specific virtual platform. Use this when the user wants to reboot, restart, cycle, or recover a hung, crashed, or misbehaving service.",
+    "tags": [
+      "operations",
+      "restart",
+      "service",
+      "recovery"
+    ],
+    "steps": [
+      "identify_service",
+      "graceful_stop",
+      "start_service",
+      "health_check"
+    ],
+    "input_schema": {
+      "service_name": "string",
+      "vp_id": "string"
+    },
+    "output_schema": {
+      "service_name": "string",
+      "status": "string"
+    }
+  },
+  {
+    "id": "generate_report",
+    "name": "Generate Report",
+    "category": "reporting",
+    "description": "Generates a formatted summary report from collected data, metrics, or prior pipeline outputs, including a fleet-wide status report across all virtual platforms and workspaces. Use this when the user wants a document, summary, export, or write-up of results such as a status report or incident report.",
+    "tags": [
+      "reporting",
+      "summary",
+      "export",
+      "document"
+    ],
+    "steps": [
+      "gather_data",
+      "format_report",
+      "export_report"
+    ],
+    "input_schema": {
+      "report_type": "string",
+      "data_source": "string"
+    },
+    "output_schema": {
+      "report_url": "string",
+      "report_type": "string",
+      "data": "object"
+    }
+  },
+  {
+    "id": "check_platform_status",
+    "name": "Check Platform Status",
+    "category": "diagnostics",
+    "description": "Checks the current health, uptime, and status of a virtual platform without making any changes. Use this when the user wants to know if a virtual platform is up, healthy, running, or currently working.",
+    "tags": [
+      "status",
+      "health",
+      "monitoring",
+      "read-only",
+      "vp_lifecycle"
+    ],
+    "steps": [
+      "query_status",
+      "aggregate_health"
+    ],
+    "input_schema": {
+      "platform_id": "string"
+    },
+    "output_schema": {
+      "platform_id": "string",
+      "status": "string",
+      "uptime": "string"
+    }
+  }
+]
