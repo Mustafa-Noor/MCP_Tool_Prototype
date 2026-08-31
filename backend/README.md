@@ -1,4 +1,6 @@
-# Planner Prototype
+# Planner Backend
+
+_Part of the [Planner Prototype](../README.md) project — see the root README for the full picture and the [frontend](../frontend/README.md) for the UI._
 
 A working prototype of the "planner layer" proposal: instead of hard-wiring the
 system to always run one fixed pipeline (log analysis), a user request is
@@ -115,14 +117,16 @@ decision* now instead of being the only thing the system can do.
 | [mcp_server.py](mcp_server.py) | FastMCP server exposing every skill as a typed MCP tool, plus `list_skills` and `run_plan` meta-tools. Handles parameter elicitation. |
 | [tools.py](tools.py) | The actual skill implementations, backed by simple in-memory state stores (VPs, workspaces, files, jobs, ...). Resets on restart. |
 | [skills_library.jsonl](skills_library.jsonl) | The skill registry/catalog — id, description, tags, declared steps, input/output schema. One line per skill. |
-| [utility/llm.py](utility/llm.py) | Swappable LLM client (EDAI/Qwen). No pipeline logic lives here by design. |
+| [llm/llm.py](llm/llm.py) | Swappable LLM client (Google Gemini). No pipeline logic lives here by design. |
 | [prompts.txt](prompts.txt) | Manual test sessions (empty-store errors, pick-list elicitation, decomposition, `<from:>` chaining, no-tool-call replies). |
+| [server.py](server.py) | FastAPI backend for the web frontend (`../frontend`) — REST + WebSocket wrapper around `planner.plan_and_run`. See below. |
 
 ## Running it
 
 ```bash
 pip install -r requirements.txt
-# .env needs HF_TOKEN (for embeddings) and an EDAI/FUSE credential (see utility/llm.py)
+# .env (repo root, one level above MCP_Tool_Prototype) needs HF_TOKEN (for
+# embeddings) and GOOGLE_API_KEY (see llm/llm.py)
 
 python embed_skills.py build          # embeds skills_library.jsonl -> skills_index/
 python planner.py "create a vp for customer acme and then snapshot it"
@@ -130,6 +134,31 @@ python planner.py "create a vp for customer acme and then snapshot it"
 # or interactively:
 python planner.py
 ```
+
+## Web frontend
+
+`server.py` exposes the same planning flow over HTTP/WebSocket for the React
+frontend in [`../frontend`](../frontend):
+
+```bash
+# from this directory (backend/):
+uvicorn server:app --reload --port 8000
+```
+
+```bash
+# in a second terminal, from ../frontend:
+npm install   # first time only
+npm run dev   # http://localhost:5173
+```
+
+Endpoints:
+
+| Route | Purpose |
+|---|---|
+| `GET /api/health` | Liveness check. |
+| `GET /api/skills` | The full skill catalog (for the frontend's sidebar). |
+| `POST /api/plan` | One-shot planning turn; any elicitation is auto-declined. |
+| `WS /ws/plan` | Interactive planning turn: streams `subtasks` / `candidates` / `plan` / `step_start` / `step` / `done` events as they happen, and forwards each elicitation request (`elicit`, with `kind: "text" \| "choice" \| "form"`) to the client, waiting for an `elicit_response` message before the underlying tool call continues. This is what lets the browser prompt the user the same way the CLI's `input()` does. |
 
 ## Example walkthrough
 

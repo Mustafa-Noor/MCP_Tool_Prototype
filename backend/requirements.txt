@@ -3,3 +3,5 @@ dotenv
 fastmcp
 huggingface_hub
 numpy
+fastapi
+uvicorn[standard]

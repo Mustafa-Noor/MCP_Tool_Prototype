@@ -4,7 +4,7 @@ planner.py
 End-to-end semantic planner:
   1. Take a user query.
   2. Retrieve the top-K closest skills from the vector store (embed_skills.search).
-  3. Hand the query + candidate skills to the LLM (utility.llm) and let it decide
+  3. Hand the query + candidate skills to the LLM (llm.llm) and let it decide
      which skill(s) to call, in what order, and with what parameters.
   4. Execute the resulting plan step by step through an in-process MCP client
      against mcp_server.py, resolving any references to an earlier step's
@@ -22,15 +22,15 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-import time
 from concurrent.futures import ThreadPoolExecutor
+from typing import Awaitable, Callable
 
 from fastmcp import Client
 from fastmcp.client.elicitation import ElicitResult
 
 import mcp_server
 from embed_skills import search
-from utility.llm import extract_json_object, get_default_llm
+from llm.llm import extract_json_object, get_default_llm
 
 TOP_K = 5
 MAX_SUBTASKS = 4
@@ -42,8 +42,8 @@ _LINE_DELAY = 0.15
 _RULE = "-" * 60
 
 
-def _pause(seconds: float = _STEP_DELAY) -> None:
-    time.sleep(seconds)
+async def _pause(seconds: float = _STEP_DELAY) -> None:
+    await asyncio.sleep(seconds)
 
 # A compound request's single embedding vector dilutes toward neither intent, so
 # a skill relevant to only one part of the request (e.g. "create a vp" inside
@@ -143,13 +143,11 @@ def _merge_candidates(candidate_lists: list[list[dict]], limit: int) -> list[dic
     return ranked[:limit]
 
 
-def _retrieve_candidates(query: str, top_k: int, llm) -> list[dict]:
+def _retrieve_candidates(query: str, top_k: int, llm) -> tuple[list[str], list[dict]]:
     subtasks = _decompose_query(query, llm)
-    if len(subtasks) > 1:
-        print(f"  (decomposed into {len(subtasks)} sub-task(s): {subtasks})")
     with ThreadPoolExecutor(max_workers=len(subtasks)) as pool:
         candidate_lists = list(pool.map(lambda s: search(s, top_k=top_k), subtasks))
-    return _merge_candidates(candidate_lists, limit=top_k * len(candidate_lists))
+    return subtasks, _merge_candidates(candidate_lists, limit=top_k * len(candidate_lists))
 
 
 async def _cli_elicitation_handler(message, response_type, params, context):
@@ -227,18 +225,45 @@ def _resolve_placeholders(params: dict, prior_results: list[dict]) -> dict:
     return resolved
 
 
-async def plan_and_run(query: str, top_k: int = TOP_K) -> dict:
+EventCallback = Callable[[dict], Awaitable[None]]
+
+
+async def plan_and_run(
+    query: str,
+    top_k: int = TOP_K,
+    *,
+    elicitation_handler=_cli_elicitation_handler,
+    on_event: EventCallback | None = None,
+) -> dict:
+    """Run one planning turn.
+
+    `elicitation_handler` and `on_event` are pluggable so the same planning
+    logic drives both the CLI (input()/print, the defaults) and the FastAPI
+    WebSocket endpoint (server-sent progress events, elicitation forwarded to
+    the connected browser) without duplicating the retrieval/plan/execute flow.
+    """
+    async def emit(event: dict) -> None:
+        if on_event is not None:
+            await on_event(event)
+
     llm = get_default_llm()
     if llm is None:
-        raise RuntimeError("No LLM configured — set an EDAI/FUSE credential (see utility/llm.py).")
+        raise RuntimeError("No LLM configured — set GOOGLE_API_KEY (see llm/llm.py).")
 
     print(f"\n{_RULE}")
     print(f"Candidate skills for: {query!r}")
-    candidates = _retrieve_candidates(query, top_k, llm)
-    _pause()
+    subtasks, candidates = _retrieve_candidates(query, top_k, llm)
+    if len(subtasks) > 1:
+        print(f"  (decomposed into {len(subtasks)} sub-task(s): {subtasks})")
+    await emit({"type": "subtasks", "subtasks": subtasks})
+    await _pause()
     for c in candidates:
         print(f"  {c['similarity']:.4f}  {c['id']}")
-        _pause(_LINE_DELAY)
+        await _pause(_LINE_DELAY)
+    await emit({
+        "type": "candidates",
+        "candidates": [{"id": c["id"], "name": c["name"], "similarity": c["similarity"]} for c in candidates],
+    })
 
     user_prompt = f"User request: {query}\n\nCandidate skills:\n{_format_candidates(candidates)}"
     raw = llm.complete(system=PLANNER_SYSTEM_PROMPT, user=user_prompt, temperature=0.0)
@@ -253,51 +278,62 @@ async def plan_and_run(query: str, top_k: int = TOP_K) -> dict:
     results: list[dict] = []
     if steps:
         print(f"\nPlan ({len(steps)} step(s)):")
-        _pause()
+        await _pause()
+    await emit({"type": "plan", "steps": steps, "reply": reply})
 
-    async with Client(mcp_server.mcp, elicitation_handler=_cli_elicitation_handler) as client:
+    async with Client(mcp_server.mcp, elicitation_handler=elicitation_handler) as client:
         for i, step in enumerate(steps):
             skill_id = step.get("skill_id")
             if skill_id not in valid_ids:
                 print(f"  [{i}] {skill_id} -> rejected (not one of the candidate skills)")
-                results.append({"skill_id": skill_id, "status": "error", "error": "skill_id not in candidate list"})
-                _pause()
+                step_result = {"skill_id": skill_id, "status": "error", "error": "skill_id not in candidate list"}
+                results.append(step_result)
+                await emit({"type": "step", "index": i, "params": {}, **step_result})
+                await _pause()
                 continue
 
             params = _resolve_placeholders(step.get("params", {}), results)
             print(f"  [{i}] {skill_id}({params})")
-            _pause()
+            await emit({"type": "step_start", "index": i, "skill_id": skill_id, "params": params})
+            await _pause()
             result = await client.call_tool(skill_id, params, raise_on_error=False)
             if result.is_error:
                 error = _error_text(result)
                 print(f"      -> error: {error}")
-                results.append({"skill_id": skill_id, "status": "error", "error": error})
+                step_result = {"skill_id": skill_id, "status": "error", "error": error}
             else:
-                results.append({"skill_id": skill_id, "status": "ok", "output": result.data})
-            _pause()
+                step_result = {"skill_id": skill_id, "status": "ok", "output": result.data}
+            results.append(step_result)
+            await emit({"type": "step", "index": i, "params": params, **step_result})
+            await _pause()
 
-    return {"reply": reply, "results": results}
+    outcome = {"reply": reply, "results": results}
+    await emit({"type": "done", **outcome})
+    return outcome
 
 
 if __name__ == "__main__":
-    def _show(outcome: dict) -> None:
+    async def _show(outcome: dict) -> None:
         if outcome["reply"]:
             print(f"\n{_RULE}")
             print(f"Assistant: {outcome['reply']}")
-            _pause()
+            await _pause()
         if outcome["results"]:
             print(f"\n{_RULE}")
             print("Results:")
-            _pause()
+            await _pause()
             print(json.dumps(outcome["results"], indent=2, default=str))
         print(f"{_RULE}\n")
 
-    if len(sys.argv) > 1:
-        _show(asyncio.run(plan_and_run(" ".join(sys.argv[1:]))))
-    else:
+    async def _main() -> None:
+        if len(sys.argv) > 1:
+            await _show(await plan_and_run(" ".join(sys.argv[1:])))
+            return
         print(f"{_RULE}\nEnter a request (blank line to quit):\n{_RULE}")
         while True:
             user_query = input("\n> ").strip()
             if not user_query:
                 break
-            _show(asyncio.run(plan_and_run(user_query)))
+            await _show(await plan_and_run(user_query))
+
+    asyncio.run(_main())
